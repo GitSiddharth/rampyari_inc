@@ -35,7 +35,6 @@ export default function ShopPage() {
 
   return (
     <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '60px 48px' }}>
-      {/* Header */}
       <div style={{ textAlign: 'center', marginBottom: '48px' }}>
         <p style={{ fontSize: '11px', letterSpacing: '0.25em', color: '#6B6B6B', marginBottom: '12px' }}>RAMPYARI INC</p>
         <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(32px, 5vw, 56px)', fontWeight: 300 }}>
@@ -43,7 +42,6 @@ export default function ShopPage() {
         </h1>
       </div>
 
-      {/* Filters */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px', flexWrap: 'wrap', gap: '16px' }}>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           {categoryTabs.map(cat => (
@@ -76,7 +74,6 @@ export default function ShopPage() {
         </div>
       </div>
 
-      {/* Grid */}
       {loading ? (
         <div style={{ textAlign: 'center', padding: '80px 0', color: '#6B6B6B' }}>
           <p style={{ fontSize: '13px', letterSpacing: '0.15em' }}>LOADING...</p>
