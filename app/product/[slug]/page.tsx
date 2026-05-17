@@ -1,5 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
+
+import React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/src/lib/supabase';
@@ -18,7 +20,8 @@ const BagIcon = () => (
   </svg>
 );
 
-export default function ProductPage({ params }: { params: { slug: string } }) {
+export default function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = React.use(params);
   const [product, setProduct] = useState<Product | null>(null);
   const [related, setRelated] = useState<Product[]>([]);
   const [qty, setQty] = useState(1);
@@ -32,7 +35,7 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
       const { data } = await supabase
         .from('products')
         .select('*')
-        .eq('slug', params.slug)
+        .eq('slug', slug)
         .single();
 
       if (!data) { setLoading(false); router.push('/not-found'); return; }
@@ -50,7 +53,7 @@ export default function ProductPage({ params }: { params: { slug: string } }) {
     };
 
     fetchData();
-  }, [params.slug]);
+  }, [slug]);
 
   const handleAdd = () => {
     if (!product) return;

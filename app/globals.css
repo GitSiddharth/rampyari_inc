@@ -4,15 +4,22 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
+/* :root {
   --font-display: 'Cormorant Garamond', serif;
   --font-body: 'DM Sans', sans-serif;
   --color-cream: #FAF7F2;
   --color-dark: #1A1A1A;
   --color-gold: #B8965A;
   --color-mid: #6B6B6B;
+} */
+:root {
+  --font-display: 'Cormorant Garamond', serif;
+  --font-body: 'DM Sans', sans-serif;
+  --color-cream: #FDF8F5;
+  --color-dark: #1A0000;
+  --color-gold: #8B1A1A;
+  --color-mid: #6B6B6B;
 }
-
 * {
   box-sizing: border-box;
   margin: 0;
