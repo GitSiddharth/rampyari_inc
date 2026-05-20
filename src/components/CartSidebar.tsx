@@ -72,13 +72,20 @@ export default function CartSidebar() {
               <span style={{ fontSize: '13px', fontWeight: 500 }}>₹{total.toLocaleString()}</span>
             </div>
             <p style={{ fontSize: '11px', color: '#6B6B6B', marginBottom: '16px' }}>Taxes and shipping calculated at checkout</p>
-            <button style={{
-              width: '100%', padding: '16px', background: '#1A1A1A', color: '#FAF7F2',
-              border: 'none', cursor: 'pointer', fontSize: '12px', letterSpacing: '0.15em',
-              fontFamily: 'var(--font-body)',
-            }}>
-              CHECKOUT
-            </button>
+           // replace with this
+<Link
+  href="/checkout"
+  onClick={closeCart}
+  style={{
+    display: 'block', width: '100%', padding: '16px',
+    background: '#8B1A1A', color: '#FAF7F2',
+    textDecoration: 'none', fontSize: '12px',
+    letterSpacing: '0.15em', fontFamily: 'var(--font-body)',
+    textAlign: 'center',
+  }}
+>
+  CHECKOUT
+</Link>
           </div>
         )}
       </div>
