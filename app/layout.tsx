@@ -5,7 +5,7 @@ import Navbar from '@/src/components/Navbar';
 import CartSidebar from '@/src/components/CartSidebar';
 import Footer from '@/src/components/Footer';
 export const metadata: Metadata = {
-  title: 'Aura — Jewellery & Gifts',
+  title: 'Rampyari Generals — Jewellery & Gifts',
   description: 'Handcrafted jewellery, toys, and accessories',
 };
 

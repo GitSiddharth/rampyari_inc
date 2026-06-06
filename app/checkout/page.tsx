@@ -18,7 +18,6 @@ export default function CheckoutPage() {
   const shipping = total >= 999 ? 0 : 99;
   const grandTotal = total + shipping;
 
-  // load razorpay script
   useEffect(() => {
     const script = document.createElement('script');
     script.src = 'https://checkout.razorpay.com/v1/checkout.js';
@@ -31,69 +30,116 @@ export default function CheckoutPage() {
     setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const saveOrder = async (paymentId: string) => {
-  try {
-    const { data: customer, error: custError } = await supabase
-      .from('customers')
-      .insert({
-        name: form.name,
-        email: form.email || null,
-        phone: form.phone,
-        address: form.address,
-        city: form.city,
-        state: form.state,
-        pincode: form.pincode,
-      })
-      .select()
-      .single();
-
-    if (custError) { alert('Customer error: ' + custError.message); setLoading(false); return; }
-
-    const orderNumber = 'RP' + Date.now().toString().slice(-6);
-
-    const { error: orderError } = await supabase
-      .from('orders')
-      .insert({
-        order_number: orderNumber,
-        customer_id: customer?.id,
-        items: items.map(i => ({
-          id: i.id,
-          name: i.name,
-          price: i.price,
-          qty: i.qty,
-          image: i.images?.[0],
-        })),
-        subtotal: total,
-        shipping: shipping,
-        total: grandTotal,
-        status: 'confirmed',
-        payment_status: 'paid',
-        payment_id: paymentId,
+  const generateInvoice = async (orderNumber: string, paymentId: string) => {
+    try {
+      const invoiceRes = await fetch('/api/send-invoice', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          order: {
+            order_number: orderNumber,
+            payment_id: paymentId,
+            items: items.map(i => ({ name: i.name, qty: i.qty, price: i.price })),
+            subtotal: total,
+            shipping: shipping,
+            total: grandTotal,
+          },
+          customer: {
+            name: form.name,
+            email: form.email,
+            phone: form.phone,
+            address: form.address,
+            city: form.city,
+            state: form.state,
+            pincode: form.pincode,
+          }
+        }),
       });
+      const { html } = await invoiceRes.json();
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.write(html);
+        printWindow.document.close();
+        printWindow.print();
+      }
+    } catch (err) {
+      console.error('Invoice error:', err);
+    }
+  };
 
-    if (orderError) { alert('Order error: ' + orderError.message); setLoading(false); return; }
+  const saveOrder = async (paymentId: string) => {
+    try {
+      const { data: customer, error: custError } = await supabase
+        .from('customers')
+        .insert({
+          name: form.name,
+          email: form.email || null,
+          phone: form.phone,
+          address: form.address,
+          city: form.city,
+          state: form.state,
+          pincode: form.pincode,
+        })
+        .select()
+        .single();
 
-    const waMessage = encodeURIComponent(
-      `🛍️ NEW ORDER - ${orderNumber}\n\n` +
-      `👤 ${form.name}\n` +
-      `📞 ${form.phone}\n` +
-      `📍 ${form.address}, ${form.city} - ${form.pincode}\n\n` +
-      `🛒 Items:\n${items.map(i => `${i.name} x${i.qty} = ₹${(i.price * i.qty).toLocaleString()}`).join('\n')}\n\n` +
-      `💰 Total: ₹${grandTotal.toLocaleString()}\n` +
-      `💳 Payment ID: ${paymentId}`
-    );
+      if (custError) {
+        alert('Customer error: ' + custError.message);
+        setLoading(false);
+        return;
+      }
 
-    window.open(`https://wa.me/916267645056?text=${waMessage}`, '_blank');
+      const orderNumber = 'RP' + Date.now().toString().slice(-6);
 
-    closeCart();
-    router.push(`/order-success?order=${orderNumber}`);
+      const { error: orderError } = await supabase
+        .from('orders')
+        .insert({
+          order_number: orderNumber,
+          customer_id: customer?.id,
+          items: items.map(i => ({
+            id: i.id,
+            name: i.name,
+            price: i.price,
+            qty: i.qty,
+            image: i.images?.[0],
+          })),
+          subtotal: total,
+          shipping: shipping,
+          total: grandTotal,
+          status: 'confirmed',
+          payment_status: 'paid',
+          payment_id: paymentId,
+        });
 
-  } catch (err: any) {
-    alert('Save error: ' + err.message);
-    setLoading(false);
-  }
-};
+      if (orderError) {
+        alert('Order error: ' + orderError.message);
+        setLoading(false);
+        return;
+      }
 
+      // generate and open invoice
+      await generateInvoice(orderNumber, paymentId);
+
+      // whatsapp notification to you
+      const waMessage = encodeURIComponent(
+        `🛍️ NEW ORDER - ${orderNumber}\n\n` +
+        `👤 ${form.name}\n` +
+        `📞 ${form.phone}\n` +
+        `📍 ${form.address}, ${form.city} - ${form.pincode}\n\n` +
+        `🛒 Items:\n${items.map(i => `${i.name} x${i.qty} = ₹${(i.price * i.qty).toLocaleString()}`).join('\n')}\n\n` +
+        `💰 Total: ₹${grandTotal.toLocaleString()}\n` +
+        `💳 Payment ID: ${paymentId}`
+      );
+      window.open(`https://wa.me/916267645056?text=${waMessage}`, '_blank');
+
+      closeCart();
+      router.push(`/order-success?order=${orderNumber}`);
+
+    } catch (err: any) {
+      alert('Error: ' + err.message);
+      setLoading(false);
+    }
+  };
 
   const handlePayment = async () => {
     if (!form.name || !form.phone || !form.address || !form.city || !form.state || !form.pincode) {
@@ -156,8 +202,9 @@ export default function CheckoutPage() {
           Your cart is empty
         </h2>
         <Link href="/shop" style={{
-          fontSize: '12px', letterSpacing: '0.15em', color: '#1A1A1A',
-          textDecoration: 'none', borderBottom: '1px solid #1A1A1A',
+          fontSize: '12px', letterSpacing: '0.15em',
+          color: '#1A1A1A', textDecoration: 'none',
+          borderBottom: '1px solid #1A1A1A',
         }}>
           CONTINUE SHOPPING
         </Link>
@@ -168,7 +215,8 @@ export default function CheckoutPage() {
   return (
     <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '60px 48px' }}>
       <h1 style={{
-        fontFamily: 'var(--font-display)', fontSize: 'clamp(28px, 4vw, 48px)',
+        fontFamily: 'var(--font-display)',
+        fontSize: 'clamp(28px, 4vw, 48px)',
         fontWeight: 300, marginBottom: '48px', textAlign: 'center',
       }}>
         Checkout
@@ -207,10 +255,9 @@ export default function CheckoutPage() {
                 style={{
                   width: '100%', padding: '14px 16px',
                   border: '1px solid #E8E4DD',
-                  background: '#FDFAF7',
-                  fontSize: '14px', fontFamily: 'var(--font-body)',
-                  outline: 'none', color: '#1A1A1A',
-                  borderRadius: '2px',
+                  background: '#FDFAF7', fontSize: '14px',
+                  fontFamily: 'var(--font-body)',
+                  outline: 'none', color: '#1A1A1A', borderRadius: '2px',
                 }}
               />
             </div>
@@ -223,7 +270,6 @@ export default function CheckoutPage() {
             ORDER SUMMARY
           </p>
 
-          {/* items list */}
           <div style={{ marginBottom: '24px' }}>
             {items.map(item => (
               <div key={item.id} style={{
@@ -247,7 +293,6 @@ export default function CheckoutPage() {
             ))}
           </div>
 
-          {/* totals */}
           <div style={{ borderTop: '1px solid #E8E4DD', paddingTop: '16px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
               <span style={{ fontSize: '13px', color: '#6B6B6B' }}>Subtotal</span>
@@ -261,7 +306,7 @@ export default function CheckoutPage() {
             </div>
             {shipping > 0 && (
               <p style={{ fontSize: '11px', color: '#8B1A1A', marginBottom: '16px' }}>
-                Add ₹{(99 - total).toLocaleString()} more for free shipping
+                Add ₹{(999 - total).toLocaleString()} more for free shipping
               </p>
             )}
             <div style={{
@@ -282,8 +327,7 @@ export default function CheckoutPage() {
                 color: '#FAF7F2', border: 'none',
                 cursor: loading ? 'not-allowed' : 'pointer',
                 fontSize: '12px', letterSpacing: '0.2em',
-                fontFamily: 'var(--font-body)',
-                transition: 'background 0.2s',
+                fontFamily: 'var(--font-body)', transition: 'background 0.2s',
               }}
             >
               {loading ? 'PROCESSING...' : `PAY ₹${grandTotal.toLocaleString()}`}
@@ -298,10 +342,7 @@ export default function CheckoutPage() {
 
       <style>{`
         @media (max-width: 768px) {
-          .checkout-grid {
-            grid-template-columns: 1fr !important;
-            padding: 0 !important;
-          }
+          .checkout-grid { grid-template-columns: 1fr !important; padding: 0 !important; }
         }
       `}</style>
     </div>
