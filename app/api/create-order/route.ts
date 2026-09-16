@@ -16,6 +16,8 @@ export async function POST(req: Request) {
       receipt: 'receipt_' + Date.now(),
     });
 
+
+    
     return NextResponse.json(order);
   } catch (err) {
     return NextResponse.json({ error: 'Failed to create order' }, { status: 500 });
